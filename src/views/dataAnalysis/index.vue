@@ -1,5 +1,9 @@
 <script setup>
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
+
+const getPrimaryColor = () => {
+  return document.documentElement.style.getPropertyValue("--el-color-primary") || (localStorage.getItem("app-theme") === "green" ? "#1daba6" : "#2b4b6b");
+};
 import * as echarts from "echarts";
 
 defineOptions({
@@ -30,7 +34,7 @@ onMounted(() => {
   const genderChart = echarts.init(genderChartRef.value);
   genderChart.setOption({
     tooltip: { trigger: "item" },
-    color: ["#f29c38", "#2b4b6b"],
+    color: ["#f29c38", getPrimaryColor()],
     series: [
       {
         type: "pie",
@@ -64,7 +68,7 @@ onMounted(() => {
       {
         type: "bar",
         barWidth: 10,
-        itemStyle: { color: "#2b4b6b", borderRadius: 5 },
+        itemStyle: { color: getPrimaryColor(), borderRadius: 5 },
         data: [5, 10, 15, 40, 80],
       },
     ],
@@ -95,7 +99,7 @@ onMounted(() => {
       {
         type: "bar",
         barWidth: 8,
-        itemStyle: { color: "#2b4b6b", borderRadius: 4 },
+        itemStyle: { color: getPrimaryColor(), borderRadius: 4 },
         label: { show: true, position: "right", color: "#555", fontSize: 10 },
         data: [2, 2, 2, 2, 3, 3, 4, 5],
       },
@@ -105,7 +109,7 @@ onMounted(() => {
   // Glucose Doughnut 1
   glChart1Instance = echarts.init(glucoseChartRef1.value);
   glChart1Instance.setOption({
-    color: ["#f29c38", "#2b4b6b", "#909399"],
+    color: ["#f29c38", getPrimaryColor(), "#909399"],
     tooltip: { trigger: "item", formatter: "{b} : {c}%" },
     series: [
       {
@@ -127,7 +131,7 @@ onMounted(() => {
   // Glucose Doughnut 2
   glChart2Instance = echarts.init(glucoseChartRef2.value);
   glChart2Instance.setOption({
-    color: ["#f29c38", "#2b4b6b", "#909399"],
+    color: ["#f29c38", getPrimaryColor(), "#909399"],
     tooltip: { trigger: "item", formatter: "{b} : {c}%" },
     series: [
       {
@@ -171,12 +175,24 @@ onMounted(() => {
       {
         type: "bar",
         barWidth: 8,
-        itemStyle: { color: "#2b4b6b", borderRadius: 4 },
+        itemStyle: { color: getPrimaryColor(), borderRadius: 4 },
         label: { show: true, position: "right", color: "#555", fontSize: 10 },
         data: [9, 9, 9, 9, 9, 10, 10, 15],
       },
     ],
   });
+
+  const handleThemeChange = () => {
+    const pc = getPrimaryColor();
+    genderChart.setOption({ color: ["#f29c38", pc] });
+    ageChart.setOption({ series: [{ itemStyle: { color: pc } }] });
+    warningChart.setOption({ series: [{ itemStyle: { color: pc } }] });
+    abChart.setOption({ series: [{ itemStyle: { color: pc } }] });
+    if (glChart1Instance) glChart1Instance.setOption({ color: ["#f29c38", pc, "#909399"] });
+    if (glChart2Instance) glChart2Instance.setOption({ color: ["#f29c38", pc, "#909399"] });
+  };
+
+  window.addEventListener("theme-changed", handleThemeChange);
 
   window.addEventListener("resize", () => {
     genderChart.resize();
@@ -185,6 +201,11 @@ onMounted(() => {
     if (glChart1Instance) glChart1Instance.resize();
     if (glChart2Instance) glChart2Instance.resize();
     abChart.resize();
+  });
+  
+
+  onUnmounted(() => {
+    window.removeEventListener("theme-changed", handleThemeChange);
   });
 });
 
@@ -268,7 +289,7 @@ const getAbnormalColor = (text) => {
 
 <template>
   <div class="analysis-container">
-    <div class="header-title">全院血糖管理数据统计平台</div>
+    <div class="header-title">全院心电图管理数据统计平台</div>
 
     <div class="main-grid">
       <!-- Left Column -->
@@ -592,7 +613,7 @@ const getAbnormalColor = (text) => {
       background: #f29c38;
     }
     &.dark {
-      background: #2b4b6b;
+      background: var(--el-color-primary);
     }
     &.blue {
       background: #909399;

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 
 const route = useRoute();
@@ -17,12 +17,48 @@ const routePaths = {
   "/glucose/measurement": ["全院血糖管理", "血糖测量管理"],
   "/glucose/abnormal": ["全院血糖管理", "异常指标管理"],
   "/quality/list": ["质控管理", "质控列表"],
-  "/supplier/list": ["供应商管理", "供应商列表"],
+  "/supplier/list": ["供应商管理", "https://github.com/Lxxxx0x/ECGIntelligenceAnalysisPlatform.git供应商列表"],
   "/system/users": ["系统管理", "用户管理"]
 };
 
 const breadcrumbs = computed(() => {
   return routePaths[route.path] || [];
+});
+
+const isGreenTheme = ref(false);
+
+const applyTheme = (isGreen) => {
+  isGreenTheme.value = isGreen;
+  const root = document.documentElement;
+  if (isGreen) {
+    root.style.setProperty('--el-color-primary', '#1daba6');
+    root.style.setProperty('--el-color-primary-light-3', '#61c4c1');
+    root.style.setProperty('--el-color-primary-light-5', '#8edddd');
+    root.style.setProperty('--el-color-primary-light-7', '#bbebe9');
+    root.style.setProperty('--el-color-primary-light-8', '#d2f2f2');
+    root.style.setProperty('--el-color-primary-light-9', '#e8f7f6');
+    root.style.setProperty('--el-color-primary-dark-2', '#178985');
+    localStorage.setItem('app-theme', 'green');
+  } else {
+    root.style.setProperty('--el-color-primary', '#2b4b6b');
+    root.style.setProperty('--el-color-primary-light-3', '#567089');
+    root.style.setProperty('--el-color-primary-light-5', '#8c9eae');
+    root.style.setProperty('--el-color-primary-light-7', '#c1cdd8');
+    root.style.setProperty('--el-color-primary-light-8', '#dce3e9');
+    root.style.setProperty('--el-color-primary-light-9', '#eef2f6');
+    root.style.setProperty('--el-color-primary-dark-2', '#223c56');
+    localStorage.setItem('app-theme', 'default');
+  }
+  // 触发自定义事件，让图表等其他组件能响应主题变化
+  window.dispatchEvent(new Event('theme-changed'));
+};
+
+const toggleTheme = () => applyTheme(!isGreenTheme.value);
+
+onMounted(() => {
+  if (localStorage.getItem('app-theme') === 'green') {
+    applyTheme(true);
+  }
 });
 </script>
 
@@ -48,15 +84,15 @@ const breadcrumbs = computed(() => {
         <el-sub-menu index="/glucose">
           <template #title>
             <el-icon><Connection /></el-icon>
-            <span>全院血糖管理</span>
+            <span>全院心电图管理</span>
           </template>
           <el-menu-item index="/glucose/warning">预警列表</el-menu-item>
           <el-menu-item index="/glucose/unmanaged">待管患者</el-menu-item>
           <el-menu-item index="/glucose/managed">在管患者</el-menu-item>
           <el-menu-item index="/glucose/beds">床位一览表</el-menu-item>
-          <el-menu-item index="/glucose/all-patients">全院血糖患者</el-menu-item>
+          <el-menu-item index="/glucose/all-patients">全院心电图患者</el-menu-item>
           <el-menu-item index="/glucose/discharged">出组患者</el-menu-item>
-          <el-menu-item index="/glucose/measurement">血糖测量管理</el-menu-item>
+          <el-menu-item index="/glucose/measurement">心电图测量管理</el-menu-item>
           <el-menu-item index="/glucose/abnormal">异常指标管理</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/quality">
@@ -95,9 +131,18 @@ const breadcrumbs = computed(() => {
           </el-breadcrumb>
         </div>
         <div class="header-actions">
-          <el-icon class="action-icon"><Moon /></el-icon>
-          <el-icon class="action-icon"><Setting /></el-icon>
-          <el-icon class="action-icon"><Bell /></el-icon>
+          <el-icon class="action-icon" @click="toggleTheme">
+            <Sunny v-if="isGreenTheme" />
+            <Moon v-else />
+          </el-icon>
+          <el-dropdown placement="bottom-end">
+            <el-icon class="action-icon"><Setting /></el-icon>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item>退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <div class="user-profile">
             <div class="user-info">
               <span class="user-name">马报国</span>
@@ -262,6 +307,7 @@ const breadcrumbs = computed(() => {
       display: flex;
       justify-content: center;
       align-items: center;
+      outline: none; /* 去除下拉菜单触发获取焦点时的边框 */
     }
 
     .user-profile {
