@@ -1,43 +1,312 @@
 <script setup>
+import { ref, reactive, nextTick, shallowRef, onUnmounted } from 'vue';
+import { Search, Refresh, View } from '@element-plus/icons-vue';
+import * as echarts from 'echarts';
+
 defineOptions({
   name: "Measurement",
+});
+
+// 查询参数
+const queryParams = reactive({
+  name: '',
+  dateRange: [],
+  status: ''
+});
+
+// 模拟心电图数据
+const mockData = [
+  { id: 1001, name: '张三', patientId: 'P001', bedNo: 'A区-01床', measureTime: '2026-04-14 09:12:00', heartRate: 75, stSegment: 0.05, qt: 400, qrs: 90, status: 'stable', desc: '正常心电图' },
+  { id: 1002, name: '李四', patientId: 'P002', bedNo: 'A区-02床', measureTime: '2026-04-14 09:30:00', heartRate: 115, stSegment: -0.25, qt: 460, qrs: 120, status: 'abnormal', desc: '窦性心动过速，ST段压低' },
+  { id: 1003, name: '王五', patientId: 'P003', bedNo: 'B区-05床', measureTime: '2026-04-14 10:05:00', heartRate: 60, stSegment: 0.02, qt: 410, qrs: 95, status: 'stable', desc: '正常心电图' },
+  { id: 1004, name: '赵六', patientId: 'P004', bedNo: 'C区-10床', measureTime: '2026-04-14 10:45:00', heartRate: 48, stSegment: 0.06, qt: 420, qrs: 100, status: 'abnormal', desc: '心动过缓' },
+  { id: 1005, name: '孙七', patientId: 'P005', bedNo: 'C区-11床', measureTime: '2026-04-14 11:20:00', heartRate: 85, stSegment: 0.35, qt: 440, qrs: 110, status: 'abnormal', desc: 'ST段显著抬高，疑似急性心梗' },
+];
+
+const tableData = ref([...mockData]);
+
+// 分页
+const total = ref(mockData.length);
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+// 查询操作
+const handleSearch = () => {
+  let result = mockData;
+  if (queryParams.name) {
+    result = result.filter(item => item.name.includes(queryParams.name) || item.patientId.includes(queryParams.name));
+  }
+  if (queryParams.status) {
+    result = result.filter(item => item.status === queryParams.status);
+  }
+  tableData.value = result;
+  total.value = result.length;
+};
+
+// 重置操作
+const handleReset = () => {
+  queryParams.name = '';
+  queryParams.dateRange = [];
+  queryParams.status = '';
+  handleSearch();
+};
+
+// --- ECharts 波形图相关 ---
+const dialogVisible = ref(false);
+const chartRef = ref(null);
+const chartInstance = shallowRef(null);
+const currentTitle = ref('心电波形变化趋势');
+
+const handleViewChart = (row) => {
+  currentTitle.value = `${row.name} - 标准实时心电走纸波形图 (HR: ${row.heartRate} bpm)`;
+  dialogVisible.value = true;
+  nextTick(() => {
+    initChart(row);
+  });
+};
+
+const initChart = (row) => {
+  if (!chartRef.value) return;
+  
+  if (chartInstance.value) {
+    chartInstance.value.dispose();
+  }
+  
+  chartInstance.value = echarts.init(chartRef.value);
+  
+  // 模拟心动周期数据（1个采样点=10ms，动态适配各个病人的心跳间隔平缓期）
+  const baseHr = row.heartRate;
+  const intervalSamples = Math.floor(60000 / baseHr / 10);
+  
+  // 模拟典型心律 PQRST 波段 (核心特点：平缓过渡段与 QRS 锐角直上直下)
+  const activeWave = [
+    0, 0.02, 0.05, 0.1, 0.12, 0.1, 0.05, 0.02, 0, // P波 (平缓)
+    0, 0, 0, 0, // PR段 (平缓基线)
+    -0.15, // Q波 (开始锐减)
+    1.8,   // R波 (瞬间陡增，直上效果)
+    -0.35, // S波 (锐减深插直下)
+    row.stSegment, row.stSegment, row.stSegment, // ST段 (读取列表中病理异常的ST段偏移数据)
+    row.stSegment + 0.05, row.stSegment + 0.15, row.stSegment + 0.25, 0.15, 0.05, 0 // T波 (平缓凸起)
+  ];
+  
+  const padLength = Math.max(0, intervalSamples - activeWave.length);
+  const beat = [...activeWave, ...Array(padLength).fill(0)]; // 剩余全是平直基线
+  
+  // 复制4个完整的心跳周期组成波形片段
+  let ecgData = [];
+  for(let i=0; i<4; i++) {
+     ecgData = ecgData.concat(beat);
+  }
+  
+  // 生成图表二维坐标 [x:时间, y:电压]
+  const seriesData = ecgData.map((y, i) => [i * 10, y]);
+  
+  const option = {
+    backgroundColor: '#ffffff',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' }
+    },
+    grid: {
+      top: 30,
+      bottom: 30,
+      left: 50,
+      right: 30
+    },
+    // 渲染心电图经典的红粉色网格背景
+    xAxis: {
+      type: 'value',
+      name: '时间(ms)',
+      min: 0,
+      max: seriesData[seriesData.length - 1][0],
+      interval: 200, // 大网格 200ms
+      minorTick: { show: true, splitNumber: 5 }, // 5次细分小网格(每格40ms)
+      minorSplitLine: {
+        show: true,
+        lineStyle: { color: '#ffe6e6', width: 1 } // 浅粉色底格
+      },
+      splitLine: {
+        show: true,
+        lineStyle: { color: '#ffb3b3', width: 1.5 } // 红色主格
+      },
+      axisLabel: { show: false }, // 隐藏时间数值，保留纯净网格氛围
+      axisTick: { show: false },
+      axisLine: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      name: '电压(mV)',
+      min: -1.0,
+      max: 2.5,
+      interval: 0.5, // 大网格 0.5mV
+      minorTick: { show: true, splitNumber: 5 }, // 5次细分小网格(每格0.1mV)
+      minorSplitLine: {
+        show: true,
+        lineStyle: { color: '#ffe6e6', width: 1 }
+      },
+      splitLine: {
+        show: true,
+        lineStyle: { color: '#ffb3b3', width: 1.5 }
+      },
+      axisLabel: { formatter: '{value}' },
+      axisLine: { show: false },
+      axisTick: { show: false }
+    },
+    series: [
+      {
+        name: 'ECG',
+        type: 'line',
+        showSymbol: false,
+        smooth: false, // 【重点闭启平滑】实现强烈的直上直下陡峭的R/S波
+        itemStyle: { color: '#000000' }, // 传统黑笔走纸颜色
+        lineStyle: { width: 1.5 },
+        data: seriesData
+      }
+    ]
+  };
+  
+  chartInstance.value.setOption(option);
+};
+
+onUnmounted(() => {
+  if (chartInstance.value) {
+    chartInstance.value.dispose();
+  }
 });
 </script>
 
 <template>
   <div class="page-container">
-    <div class="header-title">血糖测量管理</div>
-    <div class="content-box">
-      <el-empty description="血糖测量管理 内容开发中..." />
+    <!-- 头部搜索 -->
+    <div class="search-wrapper">
+      <el-form :inline="true" :model="queryParams" class="form-inline">
+        <el-form-item label="患者信息">
+          <el-input v-model="queryParams.name" placeholder="姓名/病历号" clearable @keyup.enter="handleSearch" />
+        </el-form-item>
+        <el-form-item label="测量时间">
+          <el-date-picker
+            v-model="queryParams.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <el-form-item label="心电状态">
+          <el-select v-model="queryParams.status" placeholder="全部状态" clearable style="width: 150px">
+            <el-option label="全部" value="" />
+            <el-option label="平稳" value="stable" />
+            <el-option label="异常" value="abnormal" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+        </el-form-item>
+      </el-form>
     </div>
+
+    <!-- 列表数据 -->
+    <div class="table-wrapper">
+      <el-table :data="tableData" border stripe style="width: 100%" height="100%">
+        <el-table-column type="index" label="序号" width="60" align="center" />
+        <el-table-column prop="patientId" label="病历号" width="100" />
+        <el-table-column prop="name" label="姓名" width="100" />
+        <el-table-column prop="bedNo" label="床位床" width="120" />
+        <el-table-column prop="measureTime" label="测量时间" width="160" />
+        
+        <!-- 心电图指标 -->
+        <el-table-column label="心电检测指标" align="center">
+          <el-table-column prop="heartRate" label="心率 (bpm)" width="100" align="center">
+            <template #default="{ row }">
+              <span :class="{'text-danger': row.heartRate > 100 || row.heartRate < 60}">{{ row.heartRate }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="stSegment" label="ST段 (mV)" width="100" align="center">
+            <template #default="{ row }">
+              <span :class="{'text-danger': Math.abs(row.stSegment) >= 0.1}">{{ row.stSegment }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="qt" label="QT间期(ms)" width="100" align="center" />
+          <el-table-column prop="qrs" label="QRS时限(ms)" width="110" align="center" />
+        </el-table-column>
+
+        <el-table-column prop="status" label="状态预警" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'stable' ? 'success' : 'danger'" effect="light">
+              {{ row.status === 'stable' ? '平稳' : '异常' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="desc" label="智能诊断结果" min-width="180" show-overflow-tooltip />
+        
+        <el-table-column label="操作" width="120" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button type="primary" link :icon="View" size="small" @click="handleViewChart(row)">查看波形</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+
+    <!-- 分页 -->
+    <div class="pagination-wrapper">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+      />
+    </div>
+
+    <!-- 查看波形弹窗 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="currentTitle"
+      width="1000px"
+      destroy-on-close
+    >
+      <div ref="chartRef" style="width: 100%; height: 350px;"></div>
+    </el-dialog>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .page-container {
   background: var(--el-bg-color-overlay);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 12px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   height: 100%;
-  color: var(--el-text-color-primary);
+  box-sizing: border-box;
 
-  .header-title {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 24px;
-    color: var(--el-text-color-primary);
+  .search-wrapper {
+    margin-bottom: 16px;
+    padding: 16px;
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
+    
+    .el-form-item {
+      margin-bottom: 0;
+    }
   }
 
-  .content-box {
+  .table-wrapper {
     flex: 1;
+    overflow: hidden;
+    
+    .text-danger {
+      color: var(--el-color-danger);
+      font-weight: bold;
+    }
+  }
+
+  .pagination-wrapper {
+    margin-top: 16px;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    border: 1px dashed #e0e0e0;
-    border-radius: 12px;
-    background: #f8f9fa;
+    justify-content: flex-end;
   }
 }
 </style>

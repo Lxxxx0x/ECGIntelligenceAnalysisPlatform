@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
 
 const getPrimaryColor = () => {
-  return document.documentElement.style.getPropertyValue("--el-color-primary") || (localStorage.getItem("app-theme") === "green" ? "#1daba6" : "#2b4b6b");
+  return document.documentElement.style.getPropertyValue("--el-color-primary") || "#3582e6";
 };
 import * as echarts from "echarts";
 

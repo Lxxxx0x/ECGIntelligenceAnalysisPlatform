@@ -1,0 +1,36 @@
+import request from "@/utils/request";
+
+// 预警列表数据
+export function apiWarningList(params) {
+  return request({
+    url: "/v1/blood-glucose/warnings",
+    method: "get",
+    params,
+  });
+}
+
+// 病区列表数据
+export function apiDepartmentList() {
+  return request({
+    url: "/v1/blood-glucose/bed-view/departments",
+    method: "get",
+  });
+}
+
+// 指标列表数据
+export function apiDictIndexList() {
+  return request({
+    url: "/v1/blood-glucose/dict/indexes",
+    method: "get",
+  });
+}
+
+
+// 预警列表查询接口
+export function apiSearchWarningList(params) {
+  return request({
+    url: "/v1/blood-glucose/warnings",
+    method: "get",
+    params,
+  });
+}

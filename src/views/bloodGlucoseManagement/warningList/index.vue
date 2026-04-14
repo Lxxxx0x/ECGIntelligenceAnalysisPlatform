@@ -1,9 +1,6 @@
 <script setup>
-import { ref } from "vue";
-
-defineOptions({
-  name: "WarningList",
-});
+import { ref, onMounted } from "vue";
+import { apiSearchWarningList, apiDepartmentList, apiDictIndexList } from "@/apis/bloodGlucoseManagement/warningList.js";
 
 const searchForm = ref({
   ward: "",
@@ -15,128 +12,101 @@ const searchForm = ref({
   excludeWard: "",
 });
 
-const tableData = [
-  {
-    id: 1,
-    warningTime: "2026-04-01 07:58:32",
-    patientInfo: "罗平 / 69岁 / 男",
-    admissionNo: "2186225",
-    ward: "心血管外科二病区",
-    wardPhone: "073185295102",
-    bedNo: "37",
-    admissionDate: "2026-03-10",
-    indexName: "重型(指尖/男)",
-    details: "随机 (17.8)\n晚餐后 (14.2)",
-  },
-  {
-    id: 2,
-    warningTime: "2026-03-31 23:16:07",
-    patientInfo: "曾小明 / 62岁 / 男",
-    admissionNo: "2191985",
-    ward: "心血管内科一病区",
-    wardPhone: "073185295106",
-    bedNo: "040",
-    admissionDate: "2026-03-31",
-    indexName: "重型(指尖/男)",
-    details: "随机 (15.5)\n晚餐后 (13.8)",
-  },
-  {
-    id: 3,
-    warningTime: "2026-03-31 22:32:07",
-    patientInfo: "廖在福 / 63岁 / 男",
-    admissionNo: "2180867",
-    ward: "神经外科二病区",
-    wardPhone: "073185295110",
-    bedNo: "16",
-    admissionDate: "2026-03-23",
-    indexName: "重型(指尖/男)",
-    details: "Q2h (18.1)\nQ2h (17.5)\n午餐后 (16.2)",
-  },
-  {
-    id: 4,
-    warningTime: "2026-03-31 21:59:04",
-    patientInfo: "陈六祥 / 63岁 / 女",
-    admissionNo: "2190574",
-    ward: "妇科二病区",
-    wardPhone: "073185295119",
-    bedNo: "22",
-    admissionDate: "2026-03-26",
-    indexName: "重型(指尖/女)",
-    details: "随机 (19.4)",
-  },
-  {
-    id: 5,
-    warningTime: "2026-03-31 21:45:04",
-    patientInfo: "罗建强 / 56岁 / 男",
-    admissionNo: "2190955",
-    ward: "咽喉头颈外科病区",
-    wardPhone: "073185296133",
-    bedNo: "18",
-    admissionDate: "2026-03-27",
-    indexName: "重型(指尖/男)",
-    details: "晚餐后 (14.5)",
-  },
-  {
-    id: 6,
-    warningTime: "2026-03-31 21:22:05",
-    patientInfo: "郑邦贵 / 63岁 / 男",
-    admissionNo: "2173912",
-    ward: "血液内科三病区",
-    wardPhone: "073185295196",
-    bedNo: "024",
-    admissionDate: "2026-03-26",
-    indexName: "重型(指尖/男)",
-    details: "晚餐后 (18.1)\n午餐后 (14.5)",
-  },
-  {
-    id: 7,
-    warningTime: "2026-03-31 21:06:44",
-    patientInfo: "陈书 / 55岁 / 男",
-    admissionNo: "2185505",
-    ward: "心血管内科三病区",
-    wardPhone: "073185295186",
-    bedNo: "021",
-    admissionDate: "2026-03-25",
-    indexName: "重型(指尖/男)",
-    details: "晚餐后 (16.2)",
-  },
-  {
-    id: 8,
-    warningTime: "2026-03-31 20:30:12",
-    patientInfo: "张翠花 / 68岁 / 女",
-    admissionNo: "2198833",
-    ward: "内分泌科一病区",
-    wardPhone: "073185295108",
-    bedNo: "05",
-    admissionDate: "2026-03-28",
-    indexName: "重型(静脉/女)",
-    details: "空腹 (12.4)\n餐后 (16.8)",
-  },
-  {
-    id: 9,
-    warningTime: "2026-03-31 19:45:33",
-    patientInfo: "王建国 / 72岁 / 男",
-    admissionNo: "2187742",
-    ward: "骨科病区",
-    wardPhone: "073185295115",
-    bedNo: "12",
-    admissionDate: "2026-03-20",
-    indexName: "重型(指尖/男)",
-    details: "随机 (18.5)",
-  },
-  {
-    id: 10,
-    warningTime: "2026-03-31 18:12:09",
-    patientInfo: "李梅 / 45岁 / 女",
-    admissionNo: "2195566",
-    ward: "消化内科",
-    wardPhone: "073185295111",
-    bedNo: "28",
-    admissionDate: "2026-03-29",
-    indexName: "重型(指尖/女)",
-    details: "晚餐前 (3.8)",
-  },
-];
+const tableData = ref([]); // 列表内容
+const departmentList = ref([]);// 病区列表
+const indexList = ref([]); // 指标列表
+
+const pageNum = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
+
+// 获取列表内容
+const getList = async () => {
+  try {
+    const params = {
+      pageNum: pageNum.value,
+      pageSize: pageSize.value,
+      status: searchForm.value.status === '全部' ? 'ALL' : searchForm.value.status,
+    };
+    
+    if (searchForm.value.ward) params.wardId = searchForm.value.ward;
+    if (searchForm.value.patient) params.patientKeyword = searchForm.value.patient;
+    if (searchForm.value.indexName) params.indexName = searchForm.value.indexName;
+    if (searchForm.value.dateRange && searchForm.value.dateRange.length === 2) {
+      // 假设 dateRange 是 Date 数组，如果是字符串需按需格式化
+      const start = new Date(searchForm.value.dateRange[0]);
+      const end = new Date(searchForm.value.dateRange[1]);
+      params.startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+      params.endDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+    }
+
+    const res = await apiSearchWarningList(params);
+    if (res.code === 200) {
+      tableData.value = res.data.list;
+      total.value = res.data.total;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleSearch = () => {
+  pageNum.value = 1;
+  getList();
+};
+
+const handleReset = () => {
+  searchForm.value = {
+    ward: "",
+    patient: "",
+    dateRange: [],
+    status: "全部",
+    indexName: "",
+    condition: "",
+    excludeWard: "",
+  };
+  handleSearch();
+};
+
+const handleSizeChange = (val) => {
+  pageSize.value = val;
+  getList();
+};
+
+const handleCurrentChange = (val) => {
+  pageNum.value = val;
+  getList();
+};
+
+// 获取病区列表
+const getDepartments = async () => {
+  try {
+    const res = await apiDepartmentList();
+    if (res.code === 200) {
+      departmentList.value = res.data;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+// 获取指标列表
+const getIndexes = async () => {
+  try {
+    const res = await apiDictIndexList();
+    if (res.code === 200) {
+      indexList.value = res.data;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+onMounted(() => {
+  getList();
+  getDepartments();
+  getIndexes();
+});
 </script>
 
 <template>
@@ -146,16 +116,19 @@ const tableData = [
       <div class="filter-row">
         <div class="filter-item">
           <span class="label">当前病区:</span>
-          <el-select v-model="searchForm.ward" placeholder="全部病区" style="width: 140px">
-            <el-option label="全部病区" value="" />
-            <el-option label="心血管外科二病区" value="1" />
-            <el-option label="神经外科二病区" value="2" />
+          <el-select v-model="searchForm.ward" placeholder="请选择病区" style="width: 140px">
+            <el-option
+              v-for="dept in departmentList"
+              :key="dept.departmentId"
+              :label="dept.departmentName"
+              :value="dept.departmentId"
+            />
           </el-select>
         </div>
         <div class="filter-item">
           <el-input
             v-model="searchForm.patient"
-            placeholder="患者姓名/床号/住院号"
+            placeholder="患者姓名/住院号"
             style="width: 200px"
           />
         </div>
@@ -190,8 +163,14 @@ const tableData = [
           </el-button>
         </div>
         <div class="filter-item">
-          <el-select v-model="searchForm.indexName" placeholder="指标名称" style="width: 120px">
-            <el-option label="指标名称" value="" />
+          <el-select v-model="searchForm.indexName" placeholder="请选择指标" style="width: 120px">
+            <el-option label="全部指标" value="" />
+            <el-option
+              v-for="item in indexList"
+              :key="item.indexCode"
+              :label="item.indexName"
+              :value="item.indexName"
+            />
           </el-select>
         </div>
         <div class="filter-item">
@@ -210,8 +189,8 @@ const tableData = [
             placeholder="不显示所选病区的患者"
             style="width: 450px"
           />
-          <el-button type="primary" class="export-btn">查询</el-button>
-          <el-button class="action-btn is-plain">重置</el-button>
+          <el-button type="primary" class="export-btn" @click="handleSearch">查询</el-button>
+          <el-button class="action-btn is-plain" @click="handleReset">重置</el-button>
         </div>
         <div class="right-actions">
           <el-button type="primary" class="action-btn">导出(旧)</el-button>
@@ -242,15 +221,15 @@ const tableData = [
         </el-table-column>
         <el-table-column prop="patientInfo" label="患者信息" width="160" />
         <el-table-column prop="admissionNo" label="住院号" width="120" />
-        <el-table-column prop="ward" label="病区" min-width="160" />
-        <el-table-column prop="wardPhone" label="病区电话" width="140" />
+        <el-table-column prop="wardInfo.wardName" label="病区" min-width="160" />
+        <el-table-column prop="wardInfo.wardPhone" label="病区电话" width="140" />
         <el-table-column prop="bedNo" label="床号" width="80" align="center" />
         <el-table-column prop="admissionDate" label="住院日期" width="120" />
-        <el-table-column prop="indexName" label="指标名称" width="140" />
+        <el-table-column prop="index.indexName" label="指标名称" width="140" />
         <el-table-column label="异常详情" width="140">
           <template #default="{ row }">
             <div class="multiline-cell" style="text-align: left; color: var(--el-text-color-regular)">
-              {{ row.details }}
+              {{ row.detailsText }}
             </div>
           </template>
         </el-table-column>
@@ -261,6 +240,18 @@ const tableData = [
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="pageNum"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 30, 50]" 
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -378,11 +369,14 @@ const tableData = [
   /* Table Area */
   .table-card {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     border: 1px solid #f0f2f5;
     border-radius: 8px;
 
     :deep(.el-table) {
+      flex: 1;
       height: 100%;
 
       .multiline-cell {
@@ -412,6 +406,14 @@ const tableData = [
           opacity: 0.8;
         }
       }
+    }
+
+    .pagination-container {
+      display: flex;
+      justify-content: flex-end;
+      padding: 16px;
+      background-color: var(--el-bg-color-overlay);
+      border-top: 1px solid #f0f2f5;
     }
   }
 }

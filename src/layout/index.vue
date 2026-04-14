@@ -16,49 +16,45 @@ const routePaths = {
   "/glucose/discharged": ["全院血糖管理", "出组患者"],
   "/glucose/measurement": ["全院血糖管理", "血糖测量管理"],
   "/glucose/abnormal": ["全院血糖管理", "异常指标管理"],
-  "/quality/list": ["质控管理", "质控列表"],
-  "/supplier/list": ["供应商管理", "https://github.com/Lxxxx0x/ECGIntelligenceAnalysisPlatform.git供应商列表"],
-  "/system/users": ["系统管理", "用户管理"]
+  "/quality/data": ["质控管理", "心电数据质控"],
+  "/quality/device": ["质控管理", "设备质控"],
+  "/quality/report": ["质控管理", "报告质控"],
+  "/supplier/vendor/info": ["供应商与资产", "厂商管理", "信息管理"],
+  "/supplier/vendor/qualifications": ["供应商与资产", "厂商管理", "资质管理"],
+  "/supplier/vendor/device-ledger": ["供应商与资产", "厂商管理", "设备台账"],
+  "/supplier/device/basic-ledger": ["供应商与资产", "设备管理", "基础台账"],
+  "/supplier/device/binding": ["供应商与资产", "设备管理", "绑定检查"],
+  "/supplier/device/maintenance": ["供应商与资产", "设备管理", "维保校准"],
+  "/supplier/device/status": ["供应商与资产", "设备管理", "状态监控"],
+  "/supplier/consumable/info": ["供应商与资产", "耗材管理", "信息管理"],
+  "/supplier/consumable/inventory": ["供应商与资产", "耗材管理", "库存管理"],
+  "/supplier/consumable/traceability": ["供应商与资产", "耗材管理", "领用追溯"],
+  "/supplier/procurement/order": ["供应商与资产", "采购管理", "申请订单"],
+  "/supplier/procurement/acceptance": ["供应商与资产", "采购管理", "验收管理"],
+  "/supplier/procurement/statistics": ["供应商与资产", "采购管理", "台账统计"],
+  "/system/users": ["系统管理", "用户管理"],
+  "/system/departments": ["系统管理", "科室管理"],
+  "/system/roles": ["系统管理", "角色与权限管理"]
 };
 
 const breadcrumbs = computed(() => {
   return routePaths[route.path] || [];
 });
 
-const isGreenTheme = ref(false);
-
-const applyTheme = (isGreen) => {
-  isGreenTheme.value = isGreen;
+const applyTheme = () => {
   const root = document.documentElement;
-  if (isGreen) {
-    root.style.setProperty('--el-color-primary', '#1daba6');
-    root.style.setProperty('--el-color-primary-light-3', '#61c4c1');
-    root.style.setProperty('--el-color-primary-light-5', '#8edddd');
-    root.style.setProperty('--el-color-primary-light-7', '#bbebe9');
-    root.style.setProperty('--el-color-primary-light-8', '#d2f2f2');
-    root.style.setProperty('--el-color-primary-light-9', '#e8f7f6');
-    root.style.setProperty('--el-color-primary-dark-2', '#178985');
-    localStorage.setItem('app-theme', 'green');
-  } else {
-    root.style.setProperty('--el-color-primary', '#2b4b6b');
-    root.style.setProperty('--el-color-primary-light-3', '#567089');
-    root.style.setProperty('--el-color-primary-light-5', '#8c9eae');
-    root.style.setProperty('--el-color-primary-light-7', '#c1cdd8');
-    root.style.setProperty('--el-color-primary-light-8', '#dce3e9');
-    root.style.setProperty('--el-color-primary-light-9', '#eef2f6');
-    root.style.setProperty('--el-color-primary-dark-2', '#223c56');
-    localStorage.setItem('app-theme', 'default');
-  }
-  // 触发自定义事件，让图表等其他组件能响应主题变化
-  window.dispatchEvent(new Event('theme-changed'));
+// 更深一点的蓝
+  root.style.setProperty('--el-color-primary', '#3582e6');
+  root.style.setProperty('--el-color-primary-light-3', '#68a1ed');
+  root.style.setProperty('--el-color-primary-light-5', '#9abff4');
+  root.style.setProperty('--el-color-primary-light-7', '#caddf9');
+  root.style.setProperty('--el-color-primary-light-8', '#e2eefb');
+  root.style.setProperty('--el-color-primary-light-9', '#f1f6fd');
+  root.style.setProperty('--el-color-primary-dark-2', '#2a68b8');
 };
 
-const toggleTheme = () => applyTheme(!isGreenTheme.value);
-
 onMounted(() => {
-  if (localStorage.getItem('app-theme') === 'green') {
-    applyTheme(true);
-  }
+  applyTheme();
 });
 </script>
 
@@ -100,21 +96,49 @@ onMounted(() => {
             <el-icon><Finished /></el-icon>
             <span>质控管理</span>
           </template>
-          <el-menu-item index="/quality/list">质控列表</el-menu-item>
+          <el-menu-item index="/quality/data">心电数据质控</el-menu-item>
+          <el-menu-item index="/quality/device">设备质控</el-menu-item>
+          <el-menu-item index="/quality/report">报告质控</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/supplier">
           <template #title>
             <el-icon><Tickets /></el-icon>
-            <span>供应商管理</span>
+            <span>供应商与资产</span>
           </template>
-          <el-menu-item index="/supplier/list">供应商列表</el-menu-item>
+          <el-sub-menu index="/supplier/vendor">
+            <template #title>厂商管理</template>
+            <el-menu-item index="/supplier/vendor/info">信息管理</el-menu-item>
+            <el-menu-item index="/supplier/vendor/qualifications">资质管理</el-menu-item>
+            <el-menu-item index="/supplier/vendor/device-ledger">厂商设备台账</el-menu-item>
+          </el-sub-menu>
+          <el-sub-menu index="/supplier/device">
+            <template #title>设备管理</template>
+            <el-menu-item index="/supplier/device/basic-ledger">基础台账</el-menu-item>
+            <el-menu-item index="/supplier/device/binding">绑定检查</el-menu-item>
+            <el-menu-item index="/supplier/device/maintenance">维保校准</el-menu-item>
+            <el-menu-item index="/supplier/device/status">状态监控</el-menu-item>
+          </el-sub-menu>
+          <el-sub-menu index="/supplier/consumable">
+            <template #title>耗材试剂</template>
+            <el-menu-item index="/supplier/consumable/info">信息管理</el-menu-item>
+            <el-menu-item index="/supplier/consumable/inventory">库存管理</el-menu-item>
+            <el-menu-item index="/supplier/consumable/traceability">领用追溯</el-menu-item>
+          </el-sub-menu>
+          <el-sub-menu index="/supplier/procurement">
+            <template #title>采购管理</template>
+            <el-menu-item index="/supplier/procurement/order">申请订单</el-menu-item>
+            <el-menu-item index="/supplier/procurement/acceptance">验收管理</el-menu-item>
+            <el-menu-item index="/supplier/procurement/statistics">台账统计</el-menu-item>
+          </el-sub-menu>
         </el-sub-menu>
         <el-sub-menu index="/system">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>系统管理</span>
           </template>
+          <el-menu-item index="/system/departments">科室管理</el-menu-item>
           <el-menu-item index="/system/users">用户管理</el-menu-item>
+          <el-menu-item index="/system/roles">角色与权限管理</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </div>
@@ -131,10 +155,6 @@ onMounted(() => {
           </el-breadcrumb>
         </div>
         <div class="header-actions">
-          <el-icon class="action-icon" @click="toggleTheme">
-            <Sunny v-if="isGreenTheme" />
-            <Moon v-else />
-          </el-icon>
           <el-dropdown placement="bottom-end">
             <el-icon class="action-icon"><Setting /></el-icon>
             <template #dropdown>
@@ -177,7 +197,7 @@ onMounted(() => {
 /* Sidebar */
 .sidebar {
   width: 240px;
-  background-color: var(--el-bg-color-overlay);
+  background-color: var(--el-color-primary);
   display: flex;
   flex-direction: column;
   padding: 20px 0;
@@ -190,11 +210,11 @@ onMounted(() => {
     align-items: center;
     padding: 0 30px;
     margin-bottom: 40px;
-    color: #1a1a1a;
+    color: #ffffff;
 
     .logo-icon {
       font-size: 24px;
-      color: var(--el-color-primary);
+      color: #ffffff;
       margin-right: 12px;
     }
 
@@ -205,36 +225,62 @@ onMounted(() => {
 
       small {
         font-size: 11px;
-        color: var(--el-text-color-secondary);
+        color: rgba(255, 255, 255, 0.7);
         font-weight: normal;
       }
     }
   }
 
   .sidebar-menu {
+    flex: 1;
+    overflow-y: auto;
     border-right: none;
     padding: 0 16px;
+    background-color: transparent;
+
+    /* 隐藏滚动条显得更美观 */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    scrollbar-width: none;
+
+    // 为了覆盖 el-menu 以及多级子菜单原本的样式
+    :deep(.el-menu) {
+      background-color: transparent !important;
+      border-right: none;
+    }
+    
+    :deep(.el-sub-menu .el-menu) {
+      background-color: transparent !important;
+    }
+
+    .el-menu-item,
+    :deep(.el-sub-menu__title) {
+      color: rgba(255, 255, 255, 0.85) !important;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+      }
+    }
 
     .el-menu-item {
       height: 48px;
       line-height: 48px;
       border-radius: 24px;
       margin-bottom: 8px;
-      color: #606266;
       font-size: 14px;
+      background-color: transparent;
 
       .el-icon {
         margin-right: 16px;
         font-size: 18px;
-      }
-
-      &:hover {
-        background-color: #f7f9fa;
+        color: inherit;
       }
 
       &.is-active {
-        background-color: var(--el-color-primary-light-9);
-        color: var(--el-color-primary);
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
         font-weight: 500;
       }
     }
@@ -244,22 +290,19 @@ onMounted(() => {
       line-height: 48px;
       border-radius: 24px;
       margin-bottom: 8px;
-      color: #606266;
       font-size: 14px;
+      color: rgba(255, 255, 255, 0.85);
 
       .el-icon {
         margin-right: 16px;
         font-size: 18px;
-      }
-
-      &:hover {
-        background-color: #f7f9fa;
+        color: inherit;
       }
     }
 
     :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-      background-color: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      color: #ffffff !important;
       font-weight: 500;
     }
   }
