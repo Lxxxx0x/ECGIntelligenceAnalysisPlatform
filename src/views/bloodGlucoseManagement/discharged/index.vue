@@ -232,11 +232,6 @@ onUnmounted(() => {
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="patientId" label="病历号" width="100" />
         <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="bedNo" label="床位" width="120">
-          <template #default="{ row }">
-            {{ row.bedNo }}{{ String(row.bedNo || '').includes('床') ? '' : '床' }}
-          </template>
-        </el-table-column>
         <el-table-column prop="measureTime" label="测量时间" width="160" />
         
         <!-- 心电图指标 -->
