@@ -25,3 +25,11 @@ export function apiIncludePatient(patientId, data) {
     data,
   });
 }
+
+// 待管不纳入
+export function apiExcludePatient(patientId) {
+  return request({
+    url: `/blood-glucose/patients/${patientId}/unmanaged/delete`,
+    method: "post",
+  });
+}

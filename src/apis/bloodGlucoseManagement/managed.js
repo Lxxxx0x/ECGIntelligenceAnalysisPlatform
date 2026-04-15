@@ -16,3 +16,11 @@ export function apiExcludePatient(patientId) {
     method: "post",
   });
 }
+
+// 在管 -> 出组患者列表数据
+export function apiIncludePatient(patientId) {
+  return request({
+    url: `/blood-glucose/patients/${patientId}/managed/include`,
+    method: "post",
+  });
+}

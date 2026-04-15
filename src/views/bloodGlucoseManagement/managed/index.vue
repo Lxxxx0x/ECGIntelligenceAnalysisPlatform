@@ -1,9 +1,9 @@
 <script setup>
 import { ref, reactive, nextTick, shallowRef, onUnmounted, onMounted } from 'vue';
 import { Search, Refresh, View } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import * as echarts from 'echarts';
-import { apiManageList, apiExcludePatient } from '@/apis/bloodGlucoseManagement/managed';
+import { apiManageList, apiExcludePatient, apiIncludePatient } from '@/apis/bloodGlucoseManagement/managed';
 
 defineOptions({
   name: "ManagedPatients",
@@ -39,9 +39,37 @@ const getList = async () => {
   }
 };
 
+// 纳入患者操作
+const handleInclude = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定要将患者 ${row.name} 纳入目标池/转出吗？`, '系统提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+    const res = await apiIncludePatient(row.patientId);
+    if (res.code === 200 && res.success) {
+      ElMessage.success(`已成功将患者 ${row.name} 纳入目标池/转出`);
+      // 刷新列表
+      getList();
+    } else {
+      ElMessage.error(res.message || "操作失败");
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error("纳入操作异常", error);
+    }
+  }
+};
+
 // 不纳入患者操作
 const handleExclude = async (row) => {
   try {
+    await ElMessageBox.confirm(`确定要将患者 ${row.name} 不纳入管理吗？`, '系统提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
     const res = await apiExcludePatient(row.patientId);
     if (res.code === 200 && res.success) {
       ElMessage.success(`已成功将患者 ${row.name} 不纳入管理`);
@@ -51,7 +79,9 @@ const handleExclude = async (row) => {
       ElMessage.error(res.message || "操作失败");
     }
   } catch (error) {
-    console.error("不纳入操作异常", error);
+    if (error !== 'cancel') {
+      console.error("不纳入操作异常", error);
+    }
   }
 };
 
@@ -73,6 +103,7 @@ const handleReset = () => {
 const dialogVisible = ref(false);
 const chartRef = ref(null);
 const chartInstance = shallowRef(null);
+const chartTimer = ref(null);
 const currentTitle = ref('心电波形变化趋势');
 
 const handleViewChart = (row) => {
@@ -164,6 +195,36 @@ const initChart = (row) => {
   };
   
   chartInstance.value.setOption(option);
+
+  // 实现实时动画效果
+  if (chartTimer.value) clearInterval(chartTimer.value);
+  let currentIndex = seriesData.length;
+  chartTimer.value = setInterval(() => {
+    if (!chartInstance.value) return;
+    for (let i = 0; i < 5; i++) {
+      const y = beat[currentIndex % beat.length];
+      seriesData.push([currentIndex * 10, y]);
+      seriesData.shift();
+      currentIndex++;
+    }
+    
+    chartInstance.value.setOption({
+      xAxis: {
+        min: seriesData[0][0],
+        max: seriesData[seriesData.length - 1][0]
+      },
+      series: [{
+        data: seriesData
+      }]
+    });
+  }, 50);
+};
+
+const handleDialogClose = () => {
+  if (chartTimer.value) {
+    clearInterval(chartTimer.value);
+    chartTimer.value = null;
+  }
 };
 
 onMounted(() => {
@@ -171,6 +232,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (chartTimer.value) {
+    clearInterval(chartTimer.value);
+  }
   if (chartInstance.value) {
     chartInstance.value.dispose();
   }
@@ -249,7 +313,7 @@ onUnmounted(() => {
         
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="success" link size="small" @click="$message.success(`已将患者 ${row.name} 纳入管理`)">纳入</el-button>
+            <el-button type="success" link size="small" @click="handleInclude(row)">纳入</el-button>
             <el-button type="danger" link size="small" @click="handleExclude(row)">不纳入</el-button>
             <el-button type="primary" link :icon="View" size="small" @click="handleViewChart(row)">实时波形</el-button>
           </template>
@@ -276,6 +340,7 @@ onUnmounted(() => {
       :title="currentTitle"
       width="1000px"
       destroy-on-close
+      @close="handleDialogClose"
     >
       <div ref="chartRef" style="width: 100%; height: 350px;"></div>
     </el-dialog>

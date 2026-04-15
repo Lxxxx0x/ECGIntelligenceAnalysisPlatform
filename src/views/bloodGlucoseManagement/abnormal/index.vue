@@ -54,6 +54,7 @@ const handleReset = () => {
 const dialogVisible = ref(false);
 const chartRef = ref(null);
 const chartInstance = shallowRef(null);
+const chartTimer = ref(null);
 const currentTitle = ref('心电波形变化趋势');
 
 const handleViewChart = (row) => {
@@ -145,9 +146,42 @@ const initChart = (row) => {
   };
   
   chartInstance.value.setOption(option);
+
+  // 实现实时动画效果
+  if (chartTimer.value) clearInterval(chartTimer.value);
+  let currentIndex = seriesData.length;
+  chartTimer.value = setInterval(() => {
+    if (!chartInstance.value) return;
+    for (let i = 0; i < 5; i++) {
+      const y = beat[currentIndex % beat.length];
+      seriesData.push([currentIndex * 10, y]);
+      seriesData.shift();
+      currentIndex++;
+    }
+    
+    chartInstance.value.setOption({
+      xAxis: {
+        min: seriesData[0][0],
+        max: seriesData[seriesData.length - 1][0]
+      },
+      series: [{
+        data: seriesData
+      }]
+    });
+  }, 50);
+};
+
+const handleDialogClose = () => {
+  if (chartTimer.value) {
+    clearInterval(chartTimer.value);
+    chartTimer.value = null;
+  }
 };
 
 onUnmounted(() => {
+  if (chartTimer.value) {
+    clearInterval(chartTimer.value);
+  }
   if (chartInstance.value) {
     chartInstance.value.dispose();
   }
@@ -244,6 +278,7 @@ onUnmounted(() => {
       :title="currentTitle"
       width="1000px"
       destroy-on-close
+      @close="handleDialogClose"
     >
       <div ref="chartRef" style="width: 100%; height: 350px;"></div>
     </el-dialog>

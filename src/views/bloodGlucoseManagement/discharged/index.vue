@@ -1,7 +1,8 @@
 <script setup>
-import { ref, reactive, nextTick, shallowRef, onUnmounted } from 'vue';
+import { ref, reactive, nextTick, shallowRef, onUnmounted, onMounted } from 'vue';
 import { Search, Refresh, View } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
+import { apiDischargedList } from '@/apis/bloodGlucoseManagement/discharged';
 
 defineOptions({
   name: "DischargedPatients",
@@ -11,33 +12,36 @@ defineOptions({
 const queryParams = reactive({
   name: '',
   dateRange: [],
-  status: ''
+  status: '',
+  pageNum: 1,
+  pageSize: 20
 });
 
-// 模拟心电图数据
-const mockData = [
-  { id: 1001, name: '张三 (出院)', patientId: 'P001', bedNo: 'A区-01床', measureTime: '2026-04-14 09:12:00', heartRate: 75, stSegment: 0.05, qt: 400, qrs: 90, status: 'stable', desc: '正常心电图' },
-  { id: 1002, name: '李四 (转出)', patientId: 'P002', bedNo: 'A区-02床', measureTime: '2026-04-14 09:30:00', heartRate: 115, stSegment: -0.25, qt: 460, qrs: 120, status: 'abnormal', desc: '窦性心动过速，ST段压低' },
-];
+const loading = ref(false);
+const tableData = ref([]);
+const total = ref(0);
 
-const tableData = ref([...mockData]);
-
-// 分页
-const total = ref(mockData.length);
-const currentPage = ref(1);
-const pageSize = ref(10);
+const getList = async () => {
+  loading.value = true;
+  try {
+    const res = await apiDischargedList();
+    if (res.success) {
+      tableData.value = res.data.list;
+      total.value = res.data.total;
+      queryParams.pageNum = res.data.pageNum;
+      queryParams.pageSize = res.data.pageSize;
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // 查询操作
 const handleSearch = () => {
-  let result = mockData;
-  if (queryParams.name) {
-    result = result.filter(item => item.name.includes(queryParams.name) || item.patientId.includes(queryParams.name));
-  }
-  if (queryParams.status) {
-    result = result.filter(item => item.status === queryParams.status);
-  }
-  tableData.value = result;
-  total.value = result.length;
+  queryParams.pageNum = 1;
+  getList();
 };
 
 // 重置操作
@@ -52,6 +56,7 @@ const handleReset = () => {
 const dialogVisible = ref(false);
 const chartRef = ref(null);
 const chartInstance = shallowRef(null);
+const chartTimer = ref(null);
 const currentTitle = ref('心电波形变化趋势');
 
 const handleViewChart = (row) => {
@@ -143,9 +148,46 @@ const initChart = (row) => {
   };
   
   chartInstance.value.setOption(option);
+
+  // 实现实时动画效果
+  if (chartTimer.value) clearInterval(chartTimer.value);
+  let currentIndex = seriesData.length;
+  chartTimer.value = setInterval(() => {
+    if (!chartInstance.value) return;
+    for (let i = 0; i < 5; i++) {
+      const y = beat[currentIndex % beat.length];
+      seriesData.push([currentIndex * 10, y]);
+      seriesData.shift();
+      currentIndex++;
+    }
+    
+    chartInstance.value.setOption({
+      xAxis: {
+        min: seriesData[0][0],
+        max: seriesData[seriesData.length - 1][0]
+      },
+      series: [{
+        data: seriesData
+      }]
+    });
+  }, 50);
 };
 
+const handleDialogClose = () => {
+  if (chartTimer.value) {
+    clearInterval(chartTimer.value);
+    chartTimer.value = null;
+  }
+};
+
+onMounted(() => {
+  getList();
+});
+
 onUnmounted(() => {
+  if (chartTimer.value) {
+    clearInterval(chartTimer.value);
+  }
   if (chartInstance.value) {
     chartInstance.value.dispose();
   }
@@ -186,11 +228,15 @@ onUnmounted(() => {
 
     <!-- 列表数据 -->
     <div class="table-wrapper">
-      <el-table :data="tableData" border stripe style="width: 100%" height="100%">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%" height="100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="patientId" label="病历号" width="100" />
         <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="bedNo" label="床位床" width="120" />
+        <el-table-column prop="bedNo" label="床位" width="120">
+          <template #default="{ row }">
+            {{ row.bedNo }}{{ String(row.bedNo || '').includes('床') ? '' : '床' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="measureTime" label="测量时间" width="160" />
         
         <!-- 心电图指标 -->
@@ -229,11 +275,13 @@ onUnmounted(() => {
     <!-- 分页 -->
     <div class="pagination-wrapper">
       <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
+        v-model:current-page="queryParams.pageNum"
+        v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[10, 20, 50, 100]"
+        :page-sizes="[10, 20, 30, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
+        @size-change="getList"
+        @current-change="getList"
       />
     </div>
 
@@ -243,6 +291,7 @@ onUnmounted(() => {
       :title="currentTitle"
       width="1000px"
       destroy-on-close
+      @close="handleDialogClose"
     >
       <div ref="chartRef" style="width: 100%; height: 350px;"></div>
     </el-dialog>
