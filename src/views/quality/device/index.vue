@@ -1,36 +1,41 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { Search, Refresh } from '@element-plus/icons-vue';
+import { apiEcgDeviceList } from '@/apis/quality/device';
 
 defineOptions({ name: "QualityDevice" });
 
 const queryParams = reactive({
   mac: '',
-  deviceStatus: ''
+  deviceStatus: '',
+  pageNum: 1,
+  pageSize: 20
 });
 
-const mockData = [
-  { id: 1, mac: 'ECG-A-001', model: 'M-120', dept: '心内科', checkTime: '2023-09-01', nextCheckTime: '2024-09-01', passRate: '98%', status: '正常' },
-  { id: 2, mac: 'ECG-B-023', model: 'H-600', dept: '急诊科', checkTime: '2023-05-15', nextCheckTime: '2023-11-15', passRate: '85%', status: '需校准' },
-  { id: 3, mac: 'ECG-A-005', model: 'M-120', dept: '呼吸科', checkTime: '2023-08-10', nextCheckTime: '2024-08-10', passRate: '99%', status: '正常' },
-  { id: 4, mac: 'ECG-C-011', model: 'P-100', dept: 'ICU', checkTime: '2022-10-01', nextCheckTime: '2023-10-01', passRate: '70%', status: '报修' },
-];
+const loading = ref(false);
+const tableData = ref([]);
+const total = ref(0);
 
-const tableData = ref([...mockData]);
-const currentPage = ref(1);
-const pageSize = ref(10);
-const total = ref(mockData.length);
+const getList = async () => {
+  loading.value = true;
+  try {
+    const res = await apiEcgDeviceList();
+    if (res.success) {
+      tableData.value = res.data.list;
+      total.value = res.data.total;
+      queryParams.pageNum = res.data.pageNum;
+      queryParams.pageSize = res.data.pageSize;
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 const handleSearch = () => {
-  let res = mockData;
-  if (queryParams.mac) {
-    res = res.filter(item => item.mac.includes(queryParams.mac) || item.dept.includes(queryParams.mac));
-  }
-  if (queryParams.deviceStatus) {
-    res = res.filter(item => item.status === queryParams.deviceStatus);
-  }
-  tableData.value = res;
-  total.value = res.length;
+  queryParams.pageNum = 1;
+  getList();
 };
 
 const handleReset = () => {
@@ -38,6 +43,10 @@ const handleReset = () => {
   queryParams.deviceStatus = '';
   handleSearch();
 };
+
+onMounted(() => {
+  getList();
+});
 </script>
 
 <template>
@@ -62,14 +71,18 @@ const handleReset = () => {
     </div>
 
     <div class="table-wrapper">
-      <el-table :data="tableData" border stripe height="100%">
+      <el-table v-loading="loading" :data="tableData" border stripe height="100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="mac" label="设备编号" width="150" />
-        <el-table-column prop="model" label="设备型号" width="120" />
+        <el-table-column prop="model" label="设备型号" width="180" />
         <el-table-column prop="dept" label="归属科室" width="150" />
-        <el-table-column prop="checkTime" label="上次校准时间" width="150" align="center" />
+        <el-table-column prop="checkTime" label="上次校准时间" width="180" align="center" />
         <el-table-column prop="nextCheckTime" label="下次校准时间" width="150" align="center" />
-        <el-table-column prop="passRate" label="数据合格率" width="120" align="center" />
+        <el-table-column prop="passRate" label="数据合格率" width="120" align="center">
+          <template #default="{ row }">
+            {{ row.passRate }}%
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="当前状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === '报修' ? 'danger' : row.status === '正常' ? 'success' : 'warning'">
@@ -87,11 +100,13 @@ const handleReset = () => {
 
     <div class="pagination-wrapper">
       <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
+        v-model:current-page="queryParams.pageNum"
+        v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[10, 20, 50]"
+        :page-sizes="[10, 20, 30, 50]"
         layout="total, sizes, prev, pager, next, jumper"
+        @size-change="getList"
+        @current-change="getList"
       />
     </div>
   </div>

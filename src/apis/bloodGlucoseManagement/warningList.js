@@ -28,7 +28,7 @@ export function apiDictIndexList() {
 // 预警列表查询接口
 export function apiSearchWarningList(params) {
   return request({
-    url: "/v1/blood-glucose/warnings",
+    url: "/blood-glucose/warnings",
     method: "get",
     params,
   });

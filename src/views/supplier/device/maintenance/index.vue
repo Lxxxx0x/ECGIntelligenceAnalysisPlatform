@@ -2,7 +2,14 @@
 import { ref } from 'vue';
 defineOptions({ name: "DeviceMaintenance" });
 const tableData = ref([
-  { id: 1, code: 'DEV-001', type: '定期校准', date: '2023-09-01', operator: '李工', result: '正常' }
+  { id: 1, code: 'DEV-001', type: '定期保养', date: '2026-03-01', operator: '王工', result: '正常' },
+  { id: 2, code: 'DEV-002', type: '精度校准', date: '2026-03-15', operator: '李工', result: '正常' },
+  { id: 3, code: 'DEV-003', type: '除颤模块检测', date: '2026-03-20', operator: '张工', result: '需更换电池' },
+  { id: 4, code: 'DEV-004', type: '日常维护', date: '2026-03-25', operator: '设备科/孙工', result: '正常' },
+  { id: 5, code: 'DEV-005', type: '软硬件升级', date: '2026-04-02', operator: '厂家/陈工', result: '正常' },
+  { id: 6, code: 'DEV-006', type: '电路板除尘', date: '2026-04-05', operator: '王工', result: '正常' },
+  { id: 7, code: 'DEV-007', type: '定期维修', date: '2026-04-10', operator: '李工', result: '主板更换，待验收' },
+  { id: 8, code: 'DEV-008', type: '探头灵敏度检查', date: '2026-04-12', operator: '张工', result: '信号良好' }
 ]);
 </script>
 <template>

@@ -8,30 +8,21 @@ const activeMenu = ref(route.path || "/analysis");
 const routePaths = {
   "/workbench": ["工作台"],
   "/analysis": ["数据分析"],
-  "/glucose/warning": ["全院血糖管理", "预警列表"],
-  "/glucose/unmanaged": ["全院血糖管理", "待管患者"],
-  "/glucose/managed": ["全院血糖管理", "在管患者"],
-  "/glucose/beds": ["全院血糖管理", "床位一览表"],
-  "/glucose/all-patients": ["全院血糖管理", "全院血糖患者"],
-  "/glucose/discharged": ["全院血糖管理", "出组患者"],
-  "/glucose/measurement": ["全院血糖管理", "血糖测量管理"],
-  "/glucose/abnormal": ["全院血糖管理", "异常指标管理"],
+  "/glucose/warning": ["全院心电图管理", "预警列表"],
+  "/glucose/unmanaged": ["全院心电图管理", "待管患者"],
+  "/glucose/managed": ["全院心电图管理", "在管患者"],
+  "/glucose/beds": ["全院心电图管理", "床位一览表"],
+  "/glucose/all-patients": ["全院心电图管理", "全院心电图患者"],
+  "/glucose/discharged": ["全院心电图管理", "出组患者"],
+  "/glucose/measurement": ["全院心电图管理", "心电图测量管理"],
+  "/glucose/abnormal": ["全院心电图管理", "异常指标管理"],
   "/quality/data": ["质控管理", "心电数据质控"],
   "/quality/device": ["质控管理", "设备质控"],
   "/quality/report": ["质控管理", "报告质控"],
-  "/supplier/vendor/info": ["供应商与资产", "厂商管理", "信息管理"],
-  "/supplier/vendor/qualifications": ["供应商与资产", "厂商管理", "资质管理"],
-  "/supplier/vendor/device-ledger": ["供应商与资产", "厂商管理", "设备台账"],
-  "/supplier/device/basic-ledger": ["供应商与资产", "设备管理", "基础台账"],
-  "/supplier/device/binding": ["供应商与资产", "设备管理", "绑定检查"],
-  "/supplier/device/maintenance": ["供应商与资产", "设备管理", "维保校准"],
-  "/supplier/device/status": ["供应商与资产", "设备管理", "状态监控"],
-  "/supplier/consumable/info": ["供应商与资产", "耗材管理", "信息管理"],
-  "/supplier/consumable/inventory": ["供应商与资产", "耗材管理", "库存管理"],
-  "/supplier/consumable/traceability": ["供应商与资产", "耗材管理", "领用追溯"],
-  "/supplier/procurement/order": ["供应商与资产", "采购管理", "申请订单"],
-  "/supplier/procurement/acceptance": ["供应商与资产", "采购管理", "验收管理"],
-  "/supplier/procurement/statistics": ["供应商与资产", "采购管理", "台账统计"],
+  "/supplier/vendor": ["供应商与资产", "厂商管理"],
+  "/supplier/device": ["供应商与资产", "设备管理"],
+  "/supplier/consumable": ["供应商与资产", "耗材试剂"],
+  "/supplier/procurement": ["供应商与资产", "采购管理"],
   "/system/users": ["系统管理", "用户管理"],
   "/system/departments": ["系统管理", "科室管理"],
   "/system/roles": ["系统管理", "角色与权限管理"]
@@ -105,31 +96,10 @@ onMounted(() => {
             <el-icon><Tickets /></el-icon>
             <span>供应商与资产</span>
           </template>
-          <el-sub-menu index="/supplier/vendor">
-            <template #title>厂商管理</template>
-            <el-menu-item index="/supplier/vendor/info">信息管理</el-menu-item>
-            <el-menu-item index="/supplier/vendor/qualifications">资质管理</el-menu-item>
-            <el-menu-item index="/supplier/vendor/device-ledger">厂商设备台账</el-menu-item>
-          </el-sub-menu>
-          <el-sub-menu index="/supplier/device">
-            <template #title>设备管理</template>
-            <el-menu-item index="/supplier/device/basic-ledger">基础台账</el-menu-item>
-            <el-menu-item index="/supplier/device/binding">绑定检查</el-menu-item>
-            <el-menu-item index="/supplier/device/maintenance">维保校准</el-menu-item>
-            <el-menu-item index="/supplier/device/status">状态监控</el-menu-item>
-          </el-sub-menu>
-          <el-sub-menu index="/supplier/consumable">
-            <template #title>耗材试剂</template>
-            <el-menu-item index="/supplier/consumable/info">信息管理</el-menu-item>
-            <el-menu-item index="/supplier/consumable/inventory">库存管理</el-menu-item>
-            <el-menu-item index="/supplier/consumable/traceability">领用追溯</el-menu-item>
-          </el-sub-menu>
-          <el-sub-menu index="/supplier/procurement">
-            <template #title>采购管理</template>
-            <el-menu-item index="/supplier/procurement/order">申请订单</el-menu-item>
-            <el-menu-item index="/supplier/procurement/acceptance">验收管理</el-menu-item>
-            <el-menu-item index="/supplier/procurement/statistics">台账统计</el-menu-item>
-          </el-sub-menu>
+          <el-menu-item index="/supplier/vendor">厂商管理</el-menu-item>
+          <el-menu-item index="/supplier/device">设备管理</el-menu-item>
+          <el-menu-item index="/supplier/consumable">耗材试剂</el-menu-item>
+          <el-menu-item index="/supplier/procurement">采购管理</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/system">
           <template #title>

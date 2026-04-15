@@ -7,7 +7,15 @@ defineOptions({ name: "VendorInfo" });
 const queryParams = reactive({ vendorName: '' });
 const tableData = ref([
   { id: 1, code: 'V-001', name: '迈瑞医疗', type: '设备制造商', contact: '张三', phone: '13800001111', status: '合作中' },
-  { id: 2, code: 'V-002', name: '理邦仪器', type: '设备制造商', contact: '李四', phone: '13900002222', status: '合作中' }
+  { id: 2, code: 'V-002', name: '理邦仪器', type: '设备制造商', contact: '李四', phone: '13900002222', status: '合作中' },
+  { id: 3, code: 'V-003', name: '飞利浦医疗', type: '设备制造商', contact: '王五', phone: '13700003333', status: '合作中' },
+  { id: 4, code: 'V-004', name: '通用电气医疗', type: '设备制造商', contact: '赵六', phone: '13600004444', status: '黑名单' },
+  { id: 5, code: 'V-005', name: '上海微创', type: '耗材供应商', contact: '陈七', phone: '13500005555', status: '合作中' },
+  { id: 6, code: 'V-006', name: '鱼跃医疗', type: '设备制造商', contact: '钱八', phone: '13400006666', status: '中止合作' },
+  { id: 7, code: 'V-007', name: '威高集团', type: '耗材供应商', contact: '孙九', phone: '13300007777', status: '合作中' },
+  { id: 8, code: 'V-008', name: '雅培医疗', type: '设备制造商', contact: '周十', phone: '13200008888', status: '合作中' },
+  { id: 9, code: 'V-009', name: '美敦力', type: '耗材供应商', contact: '吴十一', phone: '13100009999', status: '合作中' },
+  { id: 10, code: 'V-010', name: '西门子医疗', type: '设备制造商', contact: '郑十二', phone: '13000000000', status: '合作中' }
 ]);
 
 const handleSearch = () => {};

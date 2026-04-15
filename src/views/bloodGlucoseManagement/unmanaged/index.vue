@@ -1,8 +1,9 @@
 <script setup>
 import { ref, reactive, nextTick, shallowRef, onUnmounted, onMounted } from 'vue';
 import { Search, Refresh, View } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import * as echarts from 'echarts';
-import { apiSearchUnmanageList } from '@/apis/bloodGlucoseManagement/unmanaged';
+import { apiSearchUnmanageList, apiIncludePatient } from '@/apis/bloodGlucoseManagement/unmanaged';
 
 defineOptions({
   name: "UnmanagedPatients",
@@ -51,6 +52,25 @@ const getList = async () => {
     console.error("获取待管患者列表失败", error);
   } finally {
     loading.value = false;
+  }
+};
+
+// 纳入患者操作
+const handleInclude = async (row) => {
+  try {
+    const res = await apiIncludePatient(row.patientId, {
+      reason: "常规纳入",
+      operatorId: 1001
+    });
+    if (res.code === 200 && res.success) {
+      ElMessage.success(`已成功将患者 ${row.name} 纳入管理`);
+      // 刷新列表
+      getList();
+    } else {
+      ElMessage.error(res.message || "纳入失败");
+    }
+  } catch (error) {
+    console.error("纳入操作异常", error);
   }
 };
 
@@ -248,7 +268,7 @@ onUnmounted(() => {
         
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="success" link size="small" @click="$message.success(`已将患者 ${row.name} 纳入管理`)">纳入</el-button>
+            <el-button type="success" link size="small" @click="handleInclude(row)">纳入</el-button>
             <el-button type="danger" link size="small" @click="$message.warning(`已将患者 ${row.name} 不纳入管理`)">不纳入</el-button>
             <el-button type="primary" link :icon="View" size="small" @click="handleViewChart(row)">审核波形</el-button>
           </template>

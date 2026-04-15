@@ -1,7 +1,9 @@
 <script setup>
-import { ref, reactive, nextTick, shallowRef, onUnmounted } from 'vue';
+import { ref, reactive, nextTick, shallowRef, onUnmounted, onMounted } from 'vue';
 import { Search, Refresh, View } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import * as echarts from 'echarts';
+import { apiManageList, apiExcludePatient } from '@/apis/bloodGlucoseManagement/managed';
 
 defineOptions({
   name: "ManagedPatients",
@@ -11,33 +13,52 @@ defineOptions({
 const queryParams = reactive({
   name: '',
   dateRange: [],
-  status: ''
+  status: '',
+  pageNum: 1,
+  pageSize: 20
 });
 
-// 模拟心电图数据
-const mockData = [
-  { id: 1001, name: '王五 (在管)', patientId: 'P003', bedNo: 'B区-05床', measureTime: '2026-04-14 10:05:00', heartRate: 60, stSegment: 0.02, qt: 410, qrs: 95, status: 'stable', desc: '正常心电图' },
-  { id: 1002, name: '赵六 (在管)', patientId: 'P004', bedNo: 'C区-10床', measureTime: '2026-04-14 10:45:00', heartRate: 48, stSegment: 0.06, qt: 420, qrs: 100, status: 'abnormal', desc: '心动过缓' },
-];
+const loading = ref(false);
+const tableData = ref([]);
+const total = ref(0);
 
-const tableData = ref([...mockData]);
+const getList = async () => {
+  loading.value = true;
+  try {
+    const res = await apiManageList();
+    if (res.success) {
+      tableData.value = res.data.list;
+      total.value = res.data.total;
+      queryParams.pageNum = res.data.pageNum;
+      queryParams.pageSize = res.data.pageSize;
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
 
-// 分页
-const total = ref(mockData.length);
-const currentPage = ref(1);
-const pageSize = ref(10);
+// 不纳入患者操作
+const handleExclude = async (row) => {
+  try {
+    const res = await apiExcludePatient(row.patientId);
+    if (res.code === 200 && res.success) {
+      ElMessage.success(`已成功将患者 ${row.name} 不纳入管理`);
+      // 刷新列表
+      getList();
+    } else {
+      ElMessage.error(res.message || "操作失败");
+    }
+  } catch (error) {
+    console.error("不纳入操作异常", error);
+  }
+};
 
 // 查询操作
 const handleSearch = () => {
-  let result = mockData;
-  if (queryParams.name) {
-    result = result.filter(item => item.name.includes(queryParams.name) || item.patientId.includes(queryParams.name));
-  }
-  if (queryParams.status) {
-    result = result.filter(item => item.status === queryParams.status);
-  }
-  tableData.value = result;
-  total.value = result.length;
+  queryParams.pageNum = 1;
+  getList();
 };
 
 // 重置操作
@@ -145,6 +166,10 @@ const initChart = (row) => {
   chartInstance.value.setOption(option);
 };
 
+onMounted(() => {
+  getList();
+});
+
 onUnmounted(() => {
   if (chartInstance.value) {
     chartInstance.value.dispose();
@@ -186,12 +211,16 @@ onUnmounted(() => {
 
     <!-- 列表数据 -->
     <div class="table-wrapper">
-      <el-table :data="tableData" border stripe style="width: 100%" height="100%">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%" height="100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="patientId" label="病历号" width="100" />
         <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="bedNo" label="床位床" width="120" />
-        <el-table-column prop="measureTime" label="测量时间" width="160" />
+        <el-table-column prop="bedNo" label="床位" width="120">
+          <template #default="{ row }">
+            {{ row.bedNo }}{{ String(row.bedNo || '').includes('床') ? '' : '床' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="measureTime" label="测量时间" width="180" />
         
         <!-- 心电图指标 -->
         <el-table-column label="心电检测指标" align="center">
@@ -221,7 +250,7 @@ onUnmounted(() => {
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="success" link size="small" @click="$message.success(`已将患者 ${row.name} 纳入管理`)">纳入</el-button>
-            <el-button type="danger" link size="small" @click="$message.warning(`已将患者 ${row.name} 不纳入管理`)">不纳入</el-button>
+            <el-button type="danger" link size="small" @click="handleExclude(row)">不纳入</el-button>
             <el-button type="primary" link :icon="View" size="small" @click="handleViewChart(row)">实时波形</el-button>
           </template>
         </el-table-column>
@@ -231,11 +260,13 @@ onUnmounted(() => {
     <!-- 分页 -->
     <div class="pagination-wrapper">
       <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
+        v-model:current-page="queryParams.pageNum"
+        v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[10, 20, 50, 100]"
+        :page-sizes="[10, 20, 30, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
+        @size-change="getList"
+        @current-change="getList"
       />
     </div>
 

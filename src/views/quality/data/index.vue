@@ -1,36 +1,41 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { Search, Refresh } from '@element-plus/icons-vue';
+import { apiEcgQualityList } from '@/apis/quality/data';
 
 defineOptions({ name: "QualityData" });
 
 const queryParams = reactive({
   patientId: '',
-  qualityLevel: ''
+  qualityLevel: '',
+  pageNum: 1,
+  pageSize: 20
 });
 
-const mockData = [
-  { id: 1, patientId: 'P001', name: '张三', recordTime: '2023-10-10 08:00:00', type: '12导联', score: 95, level: '优秀', issues: '无', status: '已质控' },
-  { id: 2, patientId: 'P002', name: '李四', recordTime: '2023-10-10 08:30:00', type: '动态心电', score: 65, level: '及格', issues: '基线漂移', status: '待复核' },
-  { id: 3, patientId: 'P003', name: '王五', recordTime: '2023-10-10 09:15:00', type: '12导联', score: 85, level: '良好', issues: '轻微肌电干扰', status: '已质控' },
-  { id: 4, patientId: 'P004', name: '赵六', recordTime: '2023-10-10 10:20:00', type: '单导联', score: 45, level: '不合格', issues: '电极脱落, 伪差严重', status: '需重测' },
-];
+const loading = ref(false);
+const tableData = ref([]);
+const total = ref(0);
 
-const tableData = ref([...mockData]);
-const currentPage = ref(1);
-const pageSize = ref(10);
-const total = ref(mockData.length);
+const getList = async () => {
+  loading.value = true;
+  try {
+    const res = await apiEcgQualityList();
+    if (res.success) {
+      tableData.value = res.data.list;
+      total.value = res.data.total;
+      queryParams.pageNum = res.data.pageNum;
+      queryParams.pageSize = res.data.pageSize;
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 const handleSearch = () => {
-  let res = mockData;
-  if (queryParams.patientId) {
-    res = res.filter(item => item.patientId.includes(queryParams.patientId) || item.name.includes(queryParams.patientId));
-  }
-  if (queryParams.qualityLevel) {
-    res = res.filter(item => item.level === queryParams.qualityLevel);
-  }
-  tableData.value = res;
-  total.value = res.length;
+  queryParams.pageNum = 1;
+  getList();
 };
 
 const handleReset = () => {
@@ -38,6 +43,10 @@ const handleReset = () => {
   queryParams.qualityLevel = '';
   handleSearch();
 };
+
+onMounted(() => {
+  getList();
+});
 </script>
 
 <template>
@@ -49,10 +58,10 @@ const handleReset = () => {
         </el-form-item>
         <el-form-item label="质量等级">
           <el-select v-model="queryParams.qualityLevel" placeholder="请选择等级" clearable style="width: 150px">
-            <el-option label="优秀" value="优秀" />
-            <el-option label="良好" value="良好" />
-            <el-option label="及格" value="及格" />
-            <el-option label="不合格" value="不合格" />
+            <el-option label="A" value="A" />
+            <el-option label="B" value="B" />
+            <el-option label="C" value="C" />
+            <el-option label="D" value="D" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -63,7 +72,7 @@ const handleReset = () => {
     </div>
 
     <div class="table-wrapper">
-      <el-table :data="tableData" border stripe height="100%">
+      <el-table v-loading="loading" :data="tableData" border stripe height="100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="patientId" label="病历号" width="120" />
         <el-table-column prop="name" label="姓名" width="100" />
@@ -76,7 +85,7 @@ const handleReset = () => {
         </el-table-column>
         <el-table-column prop="level" label="质量等级" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.level === '不合格' ? 'danger' : row.level === '优秀' ? 'success' : 'warning'">
+            <el-tag :type="['D', 'C'].includes(row.level) ? 'danger' : row.level === 'A' ? 'success' : 'warning'">
               {{ row.level }}
             </el-tag>
           </template>
@@ -93,11 +102,13 @@ const handleReset = () => {
 
     <div class="pagination-wrapper">
       <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
+        v-model:current-page="queryParams.pageNum"
+        v-model:page-size="queryParams.pageSize"
         :total="total"
-        :page-sizes="[10, 20, 50]"
+        :page-sizes="[10, 20, 30, 50]"
         layout="total, sizes, prev, pager, next, jumper"
+        @size-change="getList"
+        @current-change="getList"
       />
     </div>
   </div>

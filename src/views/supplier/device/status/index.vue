@@ -2,7 +2,14 @@
 import { ref } from 'vue';
 defineOptions({ name: "DeviceStatus" });
 const tableData = ref([
-  { id: 1, code: 'DEV-001', battery: '85%', signal: '强', onlineStatus: '在线', lastActive: '2023-10-10 10:30' }
+  { id: 1, code: 'DEV-001', battery: '85%', signal: '强', onlineStatus: '在线', lastActive: '2026-04-15 10:30' },
+  { id: 2, code: 'DEV-002', battery: '45%', signal: '中', onlineStatus: '在线', lastActive: '2026-04-15 10:29' },
+  { id: 3, code: 'DEV-003', battery: '12%', signal: '极弱', onlineStatus: '离线', lastActive: '2026-04-15 08:15' },
+  { id: 4, code: 'DEV-004', battery: '100%', signal: '强', onlineStatus: '在线', lastActive: '2026-04-15 10:31' },
+  { id: 5, code: 'DEV-005', battery: '0%', signal: '无', onlineStatus: '离线', lastActive: '2026-04-13 14:20' },
+  { id: 6, code: 'DEV-006', battery: '66%', signal: '中', onlineStatus: '在线', lastActive: '2026-04-15 10:31' },
+  { id: 7, code: 'DEV-007', battery: '23%', signal: '弱', onlineStatus: '在线', lastActive: '2026-04-15 10:25' },
+  { id: 8, code: 'DEV-008', battery: '95%', signal: '强', onlineStatus: '在线', lastActive: '2026-04-15 10:30' }
 ]);
 </script>
 <template>
