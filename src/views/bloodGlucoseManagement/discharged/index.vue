@@ -218,8 +218,10 @@ onUnmounted(() => {
         </el-table-column>
         <el-table-column prop="desc" label="智能诊断结果" min-width="180" show-overflow-tooltip />
         
-        <el-table-column label="操作" width="120" fixed="right" align="center">
+        <el-table-column label="操作" width="240" fixed="right" align="center">
           <template #default="{ row }">
+            <el-button type="success" link size="small" @click="$message.success(`已将患者 ${row.name} 纳入管理`)">纳入</el-button>
+            <el-button type="danger" link size="small" @click="$message.warning(`已将患者 ${row.name} 不纳入管理`)">不纳入</el-button>
             <el-button type="primary" link :icon="View" size="small" @click="handleViewChart(row)">出院复查波形</el-button>
           </template>
         </el-table-column>

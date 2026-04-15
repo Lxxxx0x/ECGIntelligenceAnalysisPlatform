@@ -1,7 +1,8 @@
 <script setup>
-import { ref, reactive, nextTick, shallowRef, onUnmounted } from 'vue';
+import { ref, reactive, nextTick, shallowRef, onUnmounted, onMounted } from 'vue';
 import { Search, Refresh, View } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
+import { apiSearchUnmanageList } from '@/apis/bloodGlucoseManagement/unmanaged';
 
 defineOptions({
   name: "UnmanagedPatients",
@@ -10,43 +11,67 @@ defineOptions({
 // 查询参数
 const queryParams = reactive({
   name: '',
+  patientId: '',
   dateRange: [],
   status: ''
 });
 
-// 模拟心电图数据
-const mockData = [
-  { id: 1001, name: '郑八 (待管)', patientId: 'P010', bedNo: '急诊-01床', measureTime: '2026-04-14 11:45:00', heartRate: 98, stSegment: 0.12, qt: 420, qrs: 100, status: 'abnormal', desc: '频发室早' },
-  { id: 1002, name: '钱九 (待管)', patientId: 'P011', bedNo: '门诊-02床', measureTime: '2026-04-14 12:20:00', heartRate: 85, stSegment: 0.05, qt: 440, qrs: 110, status: 'stable', desc: '正常心电图' },
-];
-
-const tableData = ref([...mockData]);
+const tableData = ref([]);
+const loading = ref(false);
 
 // 分页
-const total = ref(mockData.length);
+const total = ref(0);
 const currentPage = ref(1);
-const pageSize = ref(10);
+const pageSize = ref(20);
+
+// 获取列表数据
+const getList = async () => {
+  loading.value = true;
+  try {
+    const params = {
+      pageNum: currentPage.value,
+      pageSize: pageSize.value,
+      name: queryParams.name,
+      patientId: queryParams.patientId,
+      status: queryParams.status
+    };
+    if (queryParams.dateRange && queryParams.dateRange.length === 2) {
+      params.startDate = queryParams.dateRange[0];
+      params.endDate = queryParams.dateRange[1];
+    }
+    const res = await apiSearchUnmanageList(params);
+    if (res.code === 200 && res.success) {
+      const data = res.data || {};
+      tableData.value = data.list || [];
+      total.value = data.total || 0;
+      currentPage.value = data.pageNum || 1;
+      pageSize.value = data.pageSize || 20;
+    }
+  } catch (error) {
+    console.error("获取待管患者列表失败", error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // 查询操作
 const handleSearch = () => {
-  let result = mockData;
-  if (queryParams.name) {
-    result = result.filter(item => item.name.includes(queryParams.name) || item.patientId.includes(queryParams.name));
-  }
-  if (queryParams.status) {
-    result = result.filter(item => item.status === queryParams.status);
-  }
-  tableData.value = result;
-  total.value = result.length;
+  currentPage.value = 1;
+  getList();
 };
 
 // 重置操作
 const handleReset = () => {
   queryParams.name = '';
+  queryParams.patientId = '';
   queryParams.dateRange = [];
   queryParams.status = '';
   handleSearch();
 };
+
+onMounted(() => {
+  getList();
+});
 
 // --- ECharts 波形图相关 ---
 const dialogVisible = ref(false);
@@ -157,8 +182,11 @@ onUnmounted(() => {
     <!-- 头部搜索 -->
     <div class="search-wrapper">
       <el-form :inline="true" :model="queryParams" class="form-inline">
-        <el-form-item label="待管患者">
-          <el-input v-model="queryParams.name" placeholder="姓名/病历号" clearable @keyup.enter="handleSearch" />
+        <el-form-item label="姓名">
+          <el-input v-model="queryParams.name" placeholder="请输入患者姓名" clearable style="width: 150px" @keyup.enter="handleSearch" />
+        </el-form-item>
+        <el-form-item label="病历号">
+          <el-input v-model="queryParams.patientId" placeholder="请输入病历号" clearable style="width: 150px" @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="收治时间">
           <el-date-picker
@@ -186,7 +214,7 @@ onUnmounted(() => {
 
     <!-- 列表数据 -->
     <div class="table-wrapper">
-      <el-table :data="tableData" border stripe style="width: 100%" height="100%">
+      <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%" height="100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="patientId" label="病历号" width="100" />
         <el-table-column prop="name" label="姓名" width="100" />
@@ -218,8 +246,10 @@ onUnmounted(() => {
         </el-table-column>
         <el-table-column prop="desc" label="智能诊断结果" min-width="180" show-overflow-tooltip />
         
-        <el-table-column label="操作" width="120" fixed="right" align="center">
+        <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
+            <el-button type="success" link size="small" @click="$message.success(`已将患者 ${row.name} 纳入管理`)">纳入</el-button>
+            <el-button type="danger" link size="small" @click="$message.warning(`已将患者 ${row.name} 不纳入管理`)">不纳入</el-button>
             <el-button type="primary" link :icon="View" size="small" @click="handleViewChart(row)">审核波形</el-button>
           </template>
         </el-table-column>
@@ -234,6 +264,8 @@ onUnmounted(() => {
         :total="total"
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSearch"
+        @current-change="getList"
       />
     </div>
 
