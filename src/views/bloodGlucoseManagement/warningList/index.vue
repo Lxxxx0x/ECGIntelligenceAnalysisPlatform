@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { apiSearchWarningList, apiDepartmentList, apiDictIndexList } from "@/apis/bloodGlucoseManagement/warningList.js";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { apiSearchWarningList, apiDepartmentList, apiDictIndexList, apiIncludeWarning } from "@/apis/bloodGlucoseManagement/warningList.js";
 
 const searchForm = ref({
   ward: "",
@@ -99,6 +100,28 @@ const getIndexes = async () => {
     }
   } catch (error) {
     console.error(error);
+  }
+};
+
+// 纳入操作
+const handleInclude = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定要将患者 ${row.patientInfo || ''} 纳入管理吗？`, '系统提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+    const res = await apiIncludeWarning(row.warningId);
+    if (res.code === 200 && res.success) {
+      ElMessage.success('已成功纳入');
+      getList();
+    } else {
+      ElMessage.error(res.message || '纳入失败');
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error);
+    }
   }
 };
 
@@ -234,8 +257,8 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" align="center" fixed="right">
-          <template #default>
-            <el-button link class="text-include">纳入</el-button>
+          <template #default="{ row }">
+            <el-button link class="text-include" @click="handleInclude(row)">纳入</el-button>
             <el-button link class="text-exclude">不纳入</el-button>
           </template>
         </el-table-column>

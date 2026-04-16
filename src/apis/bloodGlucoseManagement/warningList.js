@@ -33,3 +33,11 @@ export function apiSearchWarningList(params) {
     params,
   });
 }
+
+// 预警列表纳入
+export function apiIncludeWarning(warningId) {
+  return request({
+    url: `/blood-glucose/warnings/${warningId}/include`,
+    method: "post",
+  });
+}

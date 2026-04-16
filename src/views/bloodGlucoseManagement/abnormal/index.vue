@@ -1,7 +1,8 @@
 <script setup>
-import { ref, reactive, nextTick, shallowRef, onUnmounted } from 'vue';
+import { ref, reactive, nextTick, shallowRef, onUnmounted, onMounted } from 'vue';
 import { Search, Refresh, View } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
+import { apiAbnormalList } from '@/apis/bloodGlucoseManagement/abnormal';
 
 defineOptions({
   name: "AbnormalMetrics",
@@ -14,32 +15,30 @@ const queryParams = reactive({
   status: 'abnormal'
 });
 
-// 模拟心电图异常数据
-const mockData = [
-  { id: 1002, name: '李四', patientId: 'P002', bedNo: 'A区-02床', measureTime: '2026-04-14 09:30:00', heartRate: 115, stSegment: -0.25, qt: 460, qrs: 120, status: 'abnormal', desc: '窦性心动过速，ST段压低' },
-  { id: 1004, name: '赵六', patientId: 'P004', bedNo: 'C区-10床', measureTime: '2026-04-14 10:45:00', heartRate: 48, stSegment: 0.06, qt: 420, qrs: 100, status: 'abnormal', desc: '心动过缓' },
-  { id: 1005, name: '孙七', patientId: 'P005', bedNo: 'C区-11床', measureTime: '2026-04-14 11:20:00', heartRate: 85, stSegment: 0.35, qt: 440, qrs: 110, status: 'abnormal', desc: 'ST段显著抬高，疑似急性心梗' },
-  { id: 1006, name: '周十', patientId: 'P008', bedNo: '急诊-03床', measureTime: '2026-04-14 13:10:00', heartRate: 130, stSegment: -0.15, qt: 450, qrs: 115, status: 'abnormal', desc: '室上性心动过速' },
-];
-
-const tableData = ref([...mockData]);
-
-// 分页
-const total = ref(mockData.length);
+const tableData = ref([]);
+const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(10);
 
+const getList = async () => {
+  try {
+    const res = await apiAbnormalList();
+    if (res.code === 200) {
+      tableData.value = res.data.list || res.data || [];
+      total.value = res.data.total || tableData.value.length;
+    }
+  } catch (error) {
+    console.error('Failed to fetch abnormal list:', error);
+  }
+};
+
+onMounted(() => {
+  getList();
+});
+
 // 查询操作
 const handleSearch = () => {
-  let result = mockData;
-  if (queryParams.name) {
-    result = result.filter(item => item.name.includes(queryParams.name) || item.patientId.includes(queryParams.name));
-  }
-  if (queryParams.status) {
-    result = result.filter(item => item.status === queryParams.status);
-  }
-  tableData.value = result;
-  total.value = result.length;
+  getList();
 };
 
 // 重置操作
@@ -47,7 +46,8 @@ const handleReset = () => {
   queryParams.name = '';
   queryParams.dateRange = [];
   queryParams.status = 'abnormal';
-  handleSearch();
+  currentPage.value = 1;
+  getList();
 };
 
 // --- ECharts 波形图相关 ---
@@ -223,9 +223,13 @@ onUnmounted(() => {
     <div class="table-wrapper">
       <el-table :data="tableData" border stripe style="width: 100%" height="100%">
         <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column prop="patientId" label="病历号" width="100" />
+        <el-table-column prop="patientId" label="病历号" width="120" />
         <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="bedNo" label="床位床" width="120" />
+        <el-table-column prop="bedNo" label="床位" width="120">
+          <template #default="{ row }">
+            {{ row.bedNo ? (row.bedNo + (String(row.bedNo).includes('床') ? '' : '床')) : '-' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="measureTime" label="发生时间" width="160" />
         
         <!-- 心电图指标 -->
