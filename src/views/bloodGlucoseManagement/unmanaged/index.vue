@@ -14,7 +14,7 @@ const queryParams = reactive({
   name: '',
   patientId: '',
   dateRange: [],
-  status: ''
+  patientStatus: ''
 });
 
 const tableData = ref([]);
@@ -34,7 +34,7 @@ const getList = async () => {
       pageSize: pageSize.value,
       name: queryParams.name,
       patientId: queryParams.patientId,
-      status: queryParams.status
+      patientStatus: queryParams.patientStatus
     };
     if (queryParams.dateRange && queryParams.dateRange.length === 2) {
       params.startDate = queryParams.dateRange[0];
@@ -115,7 +115,7 @@ const handleReset = () => {
   queryParams.name = '';
   queryParams.patientId = '';
   queryParams.dateRange = [];
-  queryParams.status = '';
+  queryParams.patientStatus = '';
   handleSearch();
 };
 
@@ -283,10 +283,10 @@ onUnmounted(() => {
           />
         </el-form-item>
         <el-form-item label="心电状态">
-          <el-select v-model="queryParams.status" placeholder="全部状态" clearable style="width: 150px">
+          <el-select v-model="queryParams.patientStatus" placeholder="全部状态" clearable style="width: 150px">
             <el-option label="全部" value="" />
-            <el-option label="平稳" value="stable" />
-            <el-option label="异常" value="abnormal" />
+            <el-option label="平稳" :value="0" />
+            <el-option label="异常" :value="1" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -320,10 +320,10 @@ onUnmounted(() => {
           <el-table-column prop="qrs" label="QRS时限(ms)" width="110" align="center" />
         </el-table-column>
 
-        <el-table-column prop="status" label="状态预警" width="100" align="center">
+        <el-table-column prop="patientStatus" label="状态预警" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'stable' ? 'success' : 'danger'" effect="light">
-              {{ row.status === 'stable' ? '平稳' : '异常' }}
+            <el-tag :type="row.patientStatus === 0 ? 'success' : 'danger'" effect="light">
+              {{ row.patientStatus === 0 ? '平稳' : '异常' }}
             </el-tag>
           </template>
         </el-table-column>
