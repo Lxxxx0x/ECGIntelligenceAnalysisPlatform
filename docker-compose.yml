@@ -1,0 +1,14 @@
+services:
+  ecg-platform:
+    image: ecg-platform:latest
+    container_name: ecg-platform
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    ports:
+      - "${FRONTEND_PORT:?FRONTEND_PORT is required}:80"
+    environment:
+      BACKEND_URL: ${BACKEND_URL:?BACKEND_URL is required}
+    restart: always
